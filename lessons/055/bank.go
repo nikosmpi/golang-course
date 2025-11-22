@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/Pallinder/go-randomdata"
 	"github.com/nikosmpi/bank/fileops"
 )
 
@@ -17,6 +18,7 @@ func main() {
 		// panic("Cant continue without balance file")
 	}
 	fmt.Println("Welcome to Go Bank!")
+	fmt.Println("Contact us at", randomdata.PhoneNumber())
 	for {
 		presentOptions()
 		var choice int
