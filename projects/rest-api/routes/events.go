@@ -6,7 +6,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/nikosmpi/gorestapi/models"
-	"github.com/nikosmpi/gorestapi/utils"
 )
 
 func daleteEvent(context *gin.Context) {
@@ -15,9 +14,14 @@ func daleteEvent(context *gin.Context) {
 		context.JSON(http.StatusBadRequest, gin.H{"message": "ERROR NO ID"})
 		return
 	}
+	userId := context.GetInt64("userId")
 	event, err := models.GetEventByID(eventId)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "ERROR DELETE EVENT"})
+		return
+	}
+	if event.UserID != userId {
+		context.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
 		return
 	}
 	err = event.Delete()
@@ -33,12 +37,16 @@ func updateEvent(context *gin.Context) {
 		context.JSON(http.StatusBadRequest, gin.H{"message": "ERROR NO ID"})
 		return
 	}
-	_, err = models.GetEventByID(eventId)
+	userId := context.GetInt64("userId")
+	event, err := models.GetEventByID(eventId)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "ERROR GET EVENT"})
 		return
 	}
-
+	if event.UserID != userId {
+		context.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+		return
+	}
 	var updatedEvent models.Event
 	err = context.ShouldBindJSON(&updatedEvent)
 	if err != nil {
@@ -75,25 +83,16 @@ func getEvents(context *gin.Context) {
 	context.JSON(http.StatusOK, events)
 }
 func createEvent(context *gin.Context) {
-	token := context.Request.Header.Get("Authorization")
-	if token == "" {
-		context.JSON(http.StatusUnauthorized, gin.H{"message": "No token provided"})
-		return
-	}
-	err := utils.ValidateToken(token)
-	if err != nil {
-		context.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid token"})
-		return
-	}
 	var event models.Event
-	err = context.ShouldBindJSON(&event)
+	err := context.ShouldBindJSON(&event)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{
 			"message": "Could not parse data",
 		})
 		return
 	}
-	event.UserID = 1
+	userId := context.GetInt64("userId")
+	event.UserID = userId
 	err = event.Save()
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "ERROR SAVE EVENT"})
